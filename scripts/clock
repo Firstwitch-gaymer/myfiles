@@ -1,0 +1,28 @@
+#!/bin/bash
+while true; do
+
+	#clear screen
+	tput clear
+
+	#show current hour, minutes, and seconds
+	date +"%H : %M : %S"
+
+	#show quit prompt
+	echo "press 'q' to exit"
+
+	#read one input passively, and accept without enter if you get one input
+	read -t 1 -n 1 user_input
+
+	#check if it's the exit key
+	if [[ "$user_input" == "q" ]]; then
+
+		#if so, quit
+		break
+	fi
+done
+
+#clear screen
+tput clear
+
+#exit message
+echo "exited clock"

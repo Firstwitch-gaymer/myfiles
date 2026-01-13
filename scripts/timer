@@ -1,0 +1,180 @@
+#!/bin/bash
+
+#plan:
+#take input
+#if -h / --help, run help
+#if empty, if last character not s, m, h, or number, or if not a number with that removed, error
+
+
+#declare timer var in seconds
+seconds=0
+hspec=false
+mspec=false
+sspec=false
+valid=true
+#help command
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+	echo "enter a number for seconds, or append h, m, or s, to specify hours, minutes, or seconds."
+	exit 1
+fi
+
+#check if blank
+if [ "$1" = "" ]; then
+	valid=false
+	echo "Error, no values entered"
+fi
+
+if ! [ -z "$4" ]; then
+	valid=false
+	echo "Error, only three arguments accepted"
+fi
+
+#check each input for:
+for i in $1 $2 $3; do
+
+	#if not empty
+	if ! [ -z $i ]; then
+
+		#seperate last character
+		iterEnd="${i: -1}"
+		#lowercase for ease
+		iterEnd="${iterEnd,,}"
+		#if last character is h, m, or s
+		if [[ "$iterEnd" =~ ^["h"|"m"|"s"]$ ]]; then
+			#add to which are specified
+
+			#hours
+			if [[ "$iterEnd" = "h" ]]; then
+				if ! $hspec; then
+					hspec=true
+				else 
+					echo "Error, hour specified twice"
+					valid=false
+				fi
+			fi
+
+			#minute
+			if [[ "$iterEnd" = "m" ]]; then
+				if ! $mspec; then
+					mspec=true
+				else 
+					echo "Error, minute specified twice"
+					valid=false
+				fi
+			fi
+			
+			#seconds specified
+			if [[ "$iterEnd" = "s" ]]; then
+				if ! $sspec; then
+					sspec=true
+				else 
+					echo "Error, seconds specified twice"
+					valid=false
+				fi
+			fi
+
+			#check if only that
+			if (( "${#i}" == 1 )); then
+				valid=false
+				echo "Error, no time value specified"
+			fi
+
+		#check if not that or numbers	
+		elif ! [[ "$iterEnd" =~ ^[0-9]$ ]]; then
+			valid=false
+			echo "Error, inccorect input"
+		else
+			#if numbers
+			
+			#seconds implied
+			if ! $sspec; then
+				sspec=true
+			else 
+				echo "Error, seconds specified twice"
+				valid=false
+			fi	
+		fi
+
+		#rest of the string
+		iterRest="${i%?}"
+		#if not numbers or empty
+		if ! [[ "$iterRest" =~ ^[0-9]+$ ]] && ! [[ "$iterRest" = "" ]]; then
+			valid=false
+			echo "Error, incorrect imput"
+		fi
+	fi
+done
+
+if ! $valid; then
+	echo "Enter --help for help"
+	exit
+fi
+
+#time to actually make the timer
+for i in $1 $2 $3; do
+	
+	#copied from validaton
+	#seperate last character
+	iterEnd="${i: -1}"
+	#lowercase for ease
+	iterEnd="${iterEnd,,}"
+	
+	#if hours
+	if [[ "$iterEnd" = "h" ]]; then
+		tempNum="${i%?}"
+		tempNum=$((60 * 60 * tempNum))
+		seconds=$((seconds + tempNum))
+	#if minutes
+	elif [[ "$iterEnd" = "m" ]]; then
+		tempNum="${i%?}"
+		tempNum=$((60 * tempNum))
+		seconds=$((seconds + tempNum))
+	#if specified seconds
+	elif [[ "$iterEnd" = "s" ]]; then
+		tempNum="${i%?}"
+		seconds=$((seconds + tempNum))
+	#if implied seconds
+	else
+		seconds=$((seconds + i))
+	fi
+done
+
+#time for the actual timer loop
+#gonna make it actually check the clock for alignment
+psec=$(date +%S)
+csec=$(date +%S)
+while ! (( seconds <= 0 )); do
+
+	#update current second
+	csec=$(date +%S)
+	#if it's been a second, decrement the timer
+	if ! (( csec == psec )); then
+		seconds=$((seconds - 1))
+		psec=$csec
+	fi
+
+	#display stuff
+
+	tput clear
+	echo "$(( seconds / 3600 ))h : $(( seconds / 60 % 60 ))m : $(( seconds % 60 ))s"
+	echo "Press 'q' to cancel"
+
+	#check for quit signal
+	
+	#not a full second, just in case it gets misaligned
+	#effectively the sleep command
+	read -t 0.5 -n 1 user_input
+	
+	#compare
+	if [[ "$user_input" == "q" ]]; then
+		tput clear
+		echo "Exited with $(( seconds / 3600 ))h : $(( seconds / 60 % 60 ))m : $(( seconds % 60 ))s left"
+		exit
+	fi
+
+done
+#play done sound effect in background
+nohup ffplay -autoexit -nodisp ./timerEnd.mp3 &>/dev/null &
+tput clear
+echo "time's up!"
+

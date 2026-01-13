@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#set up the final file name (basically filename-exe)
+#this is basically removing the file extension, and adding -exe
+final_name="${1%.*}-exe"
+
+#command to compile a c++ file, using the name calculated
+g++ $1 -o $final_name
+
+#run the new file
+./$final_name
